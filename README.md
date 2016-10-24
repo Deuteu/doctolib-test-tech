@@ -19,3 +19,9 @@ The mission :
  - in rails 4.2
  - to make the following unit test pass 
  - to add tests for the edge cases
+
+### Additionnal notes
+
+ - An appointment starts at 00 or 30
+ - An appointment lasts 30min
+ - Ignore "subsitution" in example
