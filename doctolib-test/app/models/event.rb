@@ -17,8 +17,8 @@ class Event < ActiveRecord::Base
   end
 
   def self.dayAvailabilities(date = DateTime.now)
-    openings = dayAvailabilitiesKind(date, "opening")
-    appointments = dayAvailabilitiesKind(date, "appointment")
+    openings = dayAvailabilitiesKind(date, "opening").uniq
+    appointments = dayAvailabilitiesKind(date, "appointment").uniq
     (openings - appointments).sort_by(&:to_i)
   end
 
