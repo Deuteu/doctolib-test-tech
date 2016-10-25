@@ -41,11 +41,11 @@ class Event < ActiveRecord::Base
       for event in weeklyEvents
         #Containing this day of week
         sameWeek = event.starts_at.wday <= event.ends_at.wday && event.starts_at.wday <= date.wday && date.wday <= event.ends_at.wday
-        overTwoWeek = event.starts_at.wday > event.ends_at.wday && (event.starts_at.wday >= date.wday || date.wday >= event.ends_at.wday)
+        overTwoWeek = event.starts_at.wday > event.ends_at.wday && (event.starts_at.wday <= date.wday || date.wday <= event.ends_at.wday)
         if (sameWeek || overTwoWeek)
           #Take beginning of the eveny or the beginning of the day if starts the day before
-          slot = (event.starts_at.wday == date.wday) ? event.starts_at : date.beginning_of_day
-          limit = (event.ends_at.wday == date.wday) ? event.ends_at : date.end_of_day
+          slot = (event.starts_at.wday == date.wday) ? date.change({hour: event.starts_at.hour, min: event.starts_at.min}) : date.beginning_of_day
+          limit = (event.ends_at.wday == date.wday) ? date.change({hour: event.ends_at.hour, min: event.ends_at.min}) : date.end_of_day
           while slot < limit
             availabilities.push(slot.strftime(HOUR_FORMAT))
             slot = (slot + SLOT_DURATION)
