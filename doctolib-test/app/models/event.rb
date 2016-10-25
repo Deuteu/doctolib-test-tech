@@ -7,6 +7,15 @@ class Event < ActiveRecord::Base
   HOUR_FORMAT = '%-k:%M'.freeze
   SLOT_DURATION = 30.minutes
 
+  def self.availabilities(date = DateTime.now)
+    result = []
+    for i in (0..6)
+      d = date + i.days
+      result.push({date: d.to_date, slots: self.dayAvailabilities(d)})
+    end
+    return result
+  end
+
   def self.dayAvailabilities(date = DateTime.now)
     openings = dayAvailabilitiesKind(date, "opening")
     appointments = dayAvailabilitiesKind(date, "appointment")
