@@ -19,6 +19,72 @@ class Event < ActiveRecord::Base
     return result
   end
 
+  #Less database call
+  #15sec vs 20sec on test
+  def self.alternateAvailabilities(date)
+    #Init
+    result = []
+    weekStart = date.beginning_of_day
+    weekEnd = (date + 6.days).end_of_day
+
+    for i in (0..6)
+      d = date + i.days
+      result.push({date: d.to_date, slots: []})
+    end
+
+    #No recurring openings
+    daylyOpenings = Event.where("starts_at < ?", weekEnd.utc).where("? < ends_at", weekStart.utc).where(weekly_recurring: nil, kind: "opening")
+    for event in daylyOpenings
+      #Take beginning of the event or the beginning of the week if starts before
+      slot = [event.starts_at, weekStart].max
+      #Stop at the end of the event or the end of the week if ends the after
+      while slot < [event.ends_at, weekEnd].min
+        i = result.index{|day| day[:date] === slot.to_date}
+        result[i][:slots] << slot.strftime(HOUR_FORMAT)
+        slot = (slot + SLOT_DURATION)
+      end
+    end
+    
+    
+    #Recurring openings
+    weeklyOpenings = Event.where("starts_at < ?", date.end_of_day.utc).where(weekly_recurring: true, kind: "opening")
+    for event in weeklyOpenings
+      slot = event.starts_at
+      while slot < event.ends_at
+        i = result.index{|day| day[:date].wday == slot.wday}
+        result[i][:slots] << slot.strftime(HOUR_FORMAT)
+        slot = (slot + SLOT_DURATION)
+      end
+    end
+
+    #No recurring appointments
+    daylyAppointments = Event.where("starts_at < ?", weekEnd.utc).where("? < ends_at", weekStart.utc).where(weekly_recurring: nil, kind: "appointment")
+    for event in daylyAppointments
+      #Take beginning of the event or the beginning of the week if starts before
+      slot = [event.starts_at, weekStart].max
+      #Stop at the end of the event or the end of the week if ends the after
+      while slot < [event.ends_at, weekEnd].min
+        i = result.index{|day| day[:date] === slot.to_date}
+        result[i][:slots].delete slot.strftime(HOUR_FORMAT)
+        slot = (slot + SLOT_DURATION)
+      end
+    end
+    
+    
+    #Recurring appointments
+    weeklyAppointments = Event.where("starts_at < ?", date.end_of_day.utc).where(weekly_recurring: true, kind: "appointment")
+    for event in weeklyAppointments
+      slot = event.starts_at
+      while slot < event.ends_at
+        i = result.index{|day| day[:date].wday == slot.wday}
+        result[i][:slots].delete slot.strftime(HOUR_FORMAT)
+        slot = (slot + SLOT_DURATION)
+      end
+    end
+    result
+  end
+
+
   def self.dayAvailabilities(date = DateTime.now)
     openings = dayAvailabilitiesKind(date, "opening").uniq
     appointments = dayAvailabilitiesKind(date, "appointment").uniq
@@ -26,7 +92,7 @@ class Event < ActiveRecord::Base
   end
 
   private
-    def self.dayAvailabilitiesKind(date ,kind)
+    def self.dayAvailabilitiesKind(date, kind)
       availabilities = []
       #Availabilities from non recurring events
       daylyEvents = Event.where("starts_at < ?", date.end_of_day.utc).where("? < ends_at", date.beginning_of_day.utc).where(weekly_recurring: nil, kind: kind)
