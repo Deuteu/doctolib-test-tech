@@ -8,6 +8,9 @@ class Event < ActiveRecord::Base
   SLOT_DURATION = 30.minutes
 
   def self.availabilities(date = DateTime.now)
+    #Should be good not to request day by day
+    #cause some events are used twice (on different days) if on several daays
+    #in particular weeklyEvents
     result = []
     for i in (0..6)
       d = date + i.days
